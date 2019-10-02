@@ -10,8 +10,8 @@
 
 <body style="background: blue">
 
-  <!--  <video id="vid" src="Video.mp4" width="500" height="500" controls></video> -->
-  <img id="image" style="display: none" src="prueba3.png" width="350" height="350">
+  <video id="image" src="videoChroma.mp4" width="350" height="350" controls></video>
+  <!-- <img id="image" style="display: none" src="prueba3.png" width="350" height="350"> -->
   <img id="image2" style="display: none" src="calavera.png">
   <canvas id="cv" width="350" height="350"></canvas>
 
@@ -101,24 +101,29 @@
 
     }
 
-
     window.onload = function () {
 
       let image = document.getElementById('image')
       let image2 = document.getElementById('image2')
       let ctx1 = document.getElementById('cv').getContext('2d')
       let rgb = {
-        r: 150,
-        g: 5,
-        b: 5
+        r: 45,
+        g: 255,
+        b: 0
       }
+      let chroma1 = new chroma(ctx1, image2, rgb, 1.5)
 
-      let chroma1 = new chroma(ctx1, image2, rgb, 0.5)
-
-      //efect
-      chroma1.applyEffect(image)
+      image.addEventListener("play", function () {
+        while (!image.paused || !image.ended)
+          chroma1.applyEffect(image)
+      });
 
     }
+
+
+
+
+
 
   </script>
 </body>
