@@ -11,147 +11,112 @@
 <body style="background: blue">
 
   <!--  <video id="vid" src="Video.mp4" width="500" height="500" controls></video> -->
-  <img id="image" src="prueba3.png" width="350" height="350" style="border:1px solid #000000;">
-  <canvas style="border:1px solid #000000;" id="cv" width="350" height="350"></canvas>
-  <canvas style="border:1px solid #000000;" id="cv2" width="350" height="350"></canvas>
+  <img id="image" style="display: none" src="prueba3.png" width="350" height="350">
+  <img id="image2" style="display: none" src="calavera.png">
+  <canvas id="cv" width="350" height="350"></canvas>
 
   <script>
 
+    class chroma {
 
-    /*let processor = {
-      timerCallback: function () {
-        if (video.paused || video.ended) {99
-          return;
-        }
-        this.computeFrame();
-        let self = this;
-        setTimeout(function () {
-          self.timerCallback();
-        }, 0);
-      },
-
-      computeFrame: function () {
-        ctx1.drawImage(video, 0, 0, video.width, video.height);
-        return;
+      constructor(ctxCanvas, chrImage, rgb, gain = 1) {
+        this._ctxCanvas = ctxCanvas
+        this._chrImage = chrImage
+        this._rgb = rgb
+        this._gain = gain
       }
-    };
+
+      applyEffect(chrVideo) {
+
+        let videoW = chrVideo.width
+        let videoH = chrVideo.height
+
+        this._ctxCanvas.drawImage(chrVideo, 0, 0, videoW, videoH)
+        let frame = this._ctxCanvas.getImageData(0, 0, videoW, videoH)
+        let large = frame.data.length / 4
+
+        let pos = {
+          x: [],
+          y: []
+        }
+
+        let statistics = {
+          median: {},
+          fashion: {}
+        }
+
+        let repetitions = {
+          x: {},
+          y: {}
+        }
+
+        for (let i = 0; i < large; i++) {
+          let r = frame.data[i * 4 + 0];
+          let g = frame.data[i * 4 + 1];
+          let b = frame.data[i * 4 + 2];
+          if (r == this._rgb.r && g == this._rgb.g && b == this._rgb.b) { //RGB color
+            let pixel = i + 1
+            let posY = Math.ceil(pixel / frame.width)
+            let posX = parseInt(pixel - (frame.width * (posY - 1)))
+            pos.x.push(posX)
+            pos.y.push(posY)
+
+            if (repetitions.x[posX])
+              repetitions.x[posX]++
+            else
+              repetitions.x[posX] = 1
 
 
+            if (repetitions.y[posY])
+              repetitions.y[posY]++
+            else
+              repetitions.y[posY] = 1
+          }
 
-    let video = document.getElementById("vid");
-    let c1 = document.getElementById("Video");
-    let ctx1 = c1.getContext("2d");
+        }
 
-    video.addEventListener("play", function () {
-      processor.timerCallback();
-    }, false);
-    */
+        statistics.fashion.x = Math.max(...Object.values(repetitions.y))//invert to operate
+        statistics.fashion.y = Math.max(...Object.values(repetitions.x))
 
+        let pair = (pos.x.length % 2) == 0
+        let middle = parseInt(pos.x.length / 2)
+        let posOrdX = pos.x.sort(function (a, b) { return a - b }) // order min to max
 
-    /******************************************************************************************************************************
-    let processor = {
-  timerCallback: function() {
-    if (this.video.paused || this.video.ended) {
-      return;
+        if (pair) {
+          statistics.median.x = parseInt((posOrdX[middle] + posOrdX[middle + 1]) / 2)
+          statistics.median.y = parseInt((pos.y[middle] + pos.y[middle + 1]) / 2)
+        } else {
+          statistics.median.x = parseInt(posOrdX[middle + 1])
+          statistics.median.y = parseInt(pos.y[middle + 1])
+        }
+
+        let newLongX = parseInt(statistics.fashion.x * this._gain)
+        let newPosX = parseInt(statistics.median.x - (newLongX / 2))
+
+        let newLongY = parseInt(statistics.fashion.y * this._gain)
+        let newPosY = parseInt(statistics.median.y - (newLongY / 2))
+
+        this._ctxCanvas.drawImage(this._chrImage, newPosX, newPosY, newLongX, newLongY)
+      }
+
     }
-    this.computeFrame();
-    let self = this;
-    setTimeout(function () {
-        self.timerCallback();
-      }, 0);
-  },
 
-  doLoad: function() {
-    this.video = document.getElementById("video");
-    this.c1 = document.getElementById("c1");
-    this.ctx1 = this.c1.getContext("2d");
-    this.c2 = document.getElementById("c2");
-    this.ctx2 = this.c2.getContext("2d");
-    let self = this;
-    this.video.addEventListener("play", function() {
-        self.width = self.video.videoWidth / 2;
-        self.height = self.video.videoHeight / 2;
-        self.timerCallback();
-      }, false);
-  },
-
-  computeFrame: function() {
-    this.ctx1.drawImage(this.video, 0, 0, this.width, this.height);
-    let frame = this.ctx1.getImageData(0, 0, this.width, this.height);
-		let l = frame.data.length / 4;
-
-    for (let i = 0; i < l; i++) {
-      let r = frame.data[i * 4 + 0];
-      let g = frame.data[i * 4 + 1];
-      let b = frame.data[i * 4 + 2];
-      if (g > 100 && r > 100 && b < 43)
-        frame.data[i * 4 + 3] = 0;
-    }
-    this.ctx2.putImageData(frame, 0, 0);
-    return;
-  }
-};
- */
 
     window.onload = function () {
 
-      let image = document.getElementById('image');
-      let cv = document.getElementById("cv");
-      let ctx1 = cv.getContext("2d");
-      let cv2 = document.getElementById("cv2");
-      let ctx2 = cv2.getContext("2d");
-
-      ctx1.drawImage(image, 0, 0, image.width, image.height)
-      let frame = ctx1.getImageData(0, 0, image.width, image.height)
-      let large = frame.data.length / 4
-      let pos = {
-        x: [],
-        y: []
+      let image = document.getElementById('image')
+      let image2 = document.getElementById('image2')
+      let ctx1 = document.getElementById('cv').getContext('2d')
+      let rgb = {
+        r: 150,
+        g: 5,
+        b: 5
       }
 
-      for (let i = 0; i < large; i++) {
-        let r = frame.data[i * 4 + 0];
-        let g = frame.data[i * 4 + 1];
-        let b = frame.data[i * 4 + 2];
-        if (g != 5 && r != 150 && b != 5) // COLOR RGB
-          frame.data[i * 4 + 3] = 0
-        else {
-          let posY = parseInt(i / frame.width)
-          let posX = parseInt(i - (frame.width * posY))
-          pos.x.push(posX)
-          pos.y.push(posY)
+      let chroma1 = new chroma(ctx1, image2, rgb, 0.5)
 
-        }
-
-      }
-
-
-      let posOrdX = pos.x.sort(function (a, b) { return a - b }) // order min to max
-      let minX = posOrdX[0]
-      let maxX = posOrdX[posOrdX.length - 1]
-      let longX = parseInt((maxX - minX) * 1.2)
-      let newX = parseInt(minX - (longX - (maxX - minX)) / 2)
-      //let centerX = parseInt(minX + (maxX - minX) / 2)
-
-      let minY = pos.y[0]
-      let maxY = pos.y[pos.y.length - 1]
-      let longY = parseInt((maxY - minY) * 1.2)
-      let newY = parseInt(minY - (longY - (maxY - minY)) / 2)
-      //let centerY = parseInt(minY + (maxY - minY) / 2)
-
-      let calavera = new Image(100, 100)
-      calavera.src = 'calavera.png'
-
-      calavera.onload = function () {
-        ctx1.drawImage(calavera, newX, newY, longX, longY)
-        console.log(posOrdX)
-
-      }
-
-      ctx2.putImageData(frame, 0, 0)
-
-
-
+      //efect
+      chroma1.applyEffect(image)
 
     }
 
