@@ -10,19 +10,21 @@
 
 <body style="background: blue">
 
-  <video id="image" src="videoChroma.mp4" width="350" height="350" controls></video>
+  <video id="video" src="chromaMulti.mp4" width="350" height="350" controls></video>
   <!-- <img id="image" style="display: none" src="prueba3.png" width="350" height="350"> -->
-  <img id="image2" style="display: none" src="calavera.png">
+  <img id="image1" style="display: none" src="chavez.png">
+  <img id="image2" style="display: none" src="brayan.png">
+  <img id="image3" style="display: none" src="dairo.png">
   <canvas id="cv" width="350" height="350"></canvas>
 
   <script>
 
     class chroma {
 
-      constructor(ctxCanvas, chrImage, rgb, gain = 1) {
+      constructor(ctxCanvas, dataRgb, tolerance, gain = 1) {
         this._ctxCanvas = ctxCanvas
-        this._chrImage = chrImage
-        this._rgb = rgb
+        this._dataRgb = dataRgb
+        this._tolerance = tolerance
         this._gain = gain
       }
 
@@ -34,96 +36,129 @@
         this._ctxCanvas.drawImage(chrVideo, 0, 0, videoW, videoH)
         let frame = this._ctxCanvas.getImageData(0, 0, videoW, videoH)
         let large = frame.data.length / 4
-
-        let pos = {
-          x: [],
-          y: []
+        let data = {
+          pos: {},
+          statistics: {},
+          repetitions: {}
         }
 
-        let statistics = {
-          median: {},
-          fashion: {}
-        }
 
-        let repetitions = {
-          x: {},
-          y: {}
+        for (let idx in this._dataRgb) { //initialize variables
+          data.pos['x' + idx] = []
+          data.pos['y' + idx] = []
+          data.statistics['median' + idx] = {}
+          data.statistics['fashion' + idx] = {}
+          data.repetitions['x' + idx] = {}
+          data.repetitions['y' + idx] = {}
         }
 
         for (let i = 0; i < large; i++) {
           let r = frame.data[i * 4 + 0];
           let g = frame.data[i * 4 + 1];
           let b = frame.data[i * 4 + 2];
-          if (r == this._rgb.r && g == this._rgb.g && b == this._rgb.b) { //RGB color
-            let pixel = i + 1
-            let posY = Math.ceil(pixel / frame.width)
-            let posX = parseInt(pixel - (frame.width * (posY - 1)))
-            pos.x.push(posX)
-            pos.y.push(posY)
 
-            if (repetitions.x[posX])
-              repetitions.x[posX]++
-            else
-              repetitions.x[posX] = 1
+          this._dataRgb.forEach((val, idx) => {
+
+            if (r >= (val.r - this._tolerance) && r <= (val.r + this._tolerance) && g >= (val.g - this._tolerance) && g <= (val.g + this._tolerance) && b >= (val.b - this._tolerance) && b <= (val.b + this._tolerance)) { //RGB color
+              let pixel = i + 1
+              let posY = Math.ceil(pixel / frame.width)
+              let posX = parseInt(pixel - (frame.width * (posY - 1)))
+              data.pos['x' + idx].push(posX)
+              data.pos['y' + idx].push(posY)
+
+              if (data.repetitions['x' + idx][posX])
+                data.repetitions['x' + idx][posX]++
+              else
+                data.repetitions['x' + idx][posX] = 1
 
 
-            if (repetitions.y[posY])
-              repetitions.y[posY]++
-            else
-              repetitions.y[posY] = 1
+              if (data.repetitions['y' + idx][posY])
+                data.repetitions['y' + idx][posY]++
+              else
+                data.repetitions['y' + idx][posY] = 1
+
+              /*  
+              console.log('Buscar esta posicion en el dataImg (frame): 'i*4)
+              console.log(frame)
+              */
+            }
+
+          })
+        }
+
+        for (let idx in this._dataRgb) {
+
+          data.statistics['fashion' + idx].x = Math.max(...Object.values(data.repetitions['y' + idx]))//invert to operate
+          data.statistics['fashion' + idx].y = Math.max(...Object.values(data.repetitions['x' + idx]))
+
+          let pair = (data.pos['x' + idx].length % 2) == 0
+          let middle = parseInt(data.pos['x' + idx].length / 2)
+          let posOrdX = data.pos['x' + idx].sort(function (a, b) { return a - b }) // order min to max
+
+          if (pair) {
+            data.statistics['median' + idx].x = parseInt((posOrdX[middle] + posOrdX[middle + 1]) / 2)
+            data.statistics['median' + idx].y = parseInt((data.pos['y' + idx][middle] + data.pos['y' + idx][middle + 1]) / 2)
+          } else {
+            data.statistics['median' + idx].x = parseInt(posOrdX[middle + 1])
+            data.statistics['median' + idx].y = parseInt(data.pos['y' + idx][middle + 1])
           }
 
+          let newLongX = parseInt(data.statistics['fashion' + idx].x * this._gain)
+          let newPosX = parseInt(data.statistics['median' + idx].x - (newLongX / 2))
+
+          let newLongY = parseInt(data.statistics['fashion' + idx].y * this._gain)
+          let newPosY = parseInt(data.statistics['median' + idx].y - (newLongY / 2))
+
+          this._ctxCanvas.drawImage(this._dataRgb[idx].image, newPosX, newPosY, newLongX, newLongY)
         }
 
-        statistics.fashion.x = Math.max(...Object.values(repetitions.y))//invert to operate
-        statistics.fashion.y = Math.max(...Object.values(repetitions.x))
-
-        let pair = (pos.x.length % 2) == 0
-        let middle = parseInt(pos.x.length / 2)
-        let posOrdX = pos.x.sort(function (a, b) { return a - b }) // order min to max
-
-        if (pair) {
-          statistics.median.x = parseInt((posOrdX[middle] + posOrdX[middle + 1]) / 2)
-          statistics.median.y = parseInt((pos.y[middle] + pos.y[middle + 1]) / 2)
-        } else {
-          statistics.median.x = parseInt(posOrdX[middle + 1])
-          statistics.median.y = parseInt(pos.y[middle + 1])
-        }
-
-        let newLongX = parseInt(statistics.fashion.x * this._gain)
-        let newPosX = parseInt(statistics.median.x - (newLongX / 2))
-
-        let newLongY = parseInt(statistics.fashion.y * this._gain)
-        let newPosY = parseInt(statistics.median.y - (newLongY / 2))
-
-        this._ctxCanvas.drawImage(this._chrImage, newPosX, newPosY, newLongX, newLongY)
       }
 
     }
 
     window.onload = function () {
 
-      let image = document.getElementById('image')
-      let image2 = document.getElementById('image2')
+      let photogram = document.getElementById('video')
       let ctx1 = document.getElementById('cv').getContext('2d')
-      let rgb = {
-        r: 45,
-        g: 255,
-        b: 0
-      }
-      let chroma1 = new chroma(ctx1, image2, rgb, 1.5)
+      let dataRgb = [
+        {
+          r: 49,
+          g: 51,
+          b: 253,
+          image: document.getElementById('image1')
+        },
+        {
+          r: 45,
+          g: 255,
+          b: 0,
+          image: document.getElementById('image2')
+        },
+        {
+          r: 255,
+          g: 0,
+          b: 238,
+          image: document.getElementById('image3')
+        }
+      ]
 
-      image.addEventListener("play", function () {
-        while (!image.paused || !image.ended)
-          chroma1.applyEffect(image)
+      let chroma1 = new chroma(ctx1, dataRgb, 2, 2.5)
+
+      photogram.addEventListener("play", function () {
+        timerCallback(photogram, chroma1);
       });
-
     }
 
 
+    function timerCallback(ctx, chrom) {
 
-
-
+      if (ctx.paused || ctx.ended) {
+        return;
+      }
+      chrom.applyEffect(ctx)
+      setTimeout(function () {
+        timerCallback(ctx, chrom);
+      }, 0);
+    }
 
   </script>
 </body>
