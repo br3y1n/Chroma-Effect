@@ -10,11 +10,13 @@
 
 <body style="background: blue">
 
-  <video id="video" src="chromaMulti.mp4" width="350" height="350" controls></video>
+  <video id="video" src="real.mp4" width="350" height="350" controls></video>
   <!-- <img id="image" style="display: none" src="prueba3.png" width="350" height="350"> -->
   <img id="image1" style="display: none" src="chavez.png">
-  <img id="image2" style="display: none" src="brayan.png">
-  <img id="image3" style="display: none" src="dairo.png">
+  <img id="image2" style="display: none" src="dairo.png">
+  <img id="image3" style="display: none" src="brayan.png">
+  <img id="image4" style="display: none" src="ivan.png">
+  <img id="image5" style="display: none" src="tatiana.png">
   <canvas id="cv" width="350" height="350"></canvas>
 
   <script>
@@ -41,7 +43,6 @@
           statistics: {},
           repetitions: {}
         }
-
 
         for (let idx in this._dataRgb) { //initialize variables
           data.pos['x' + idx] = []
@@ -77,10 +78,6 @@
               else
                 data.repetitions['y' + idx][posY] = 1
 
-              /*  
-              console.log('Buscar esta posicion en el dataImg (frame): 'i*4)
-              console.log(frame)
-              */
             }
 
           })
@@ -119,33 +116,70 @@
     window.onload = function () {
 
       let photogram = document.getElementById('video')
-      let ctx1 = document.getElementById('cv').getContext('2d')
+      let cv = document.getElementById('cv')
+      let ctx1 = cv.getContext('2d')
+
       let dataRgb = [
         {
-          r: 49,
-          g: 51,
-          b: 253,
+          r: 255,
+          g: 250,
+          b: 47,
           image: document.getElementById('image1')
         },
         {
-          r: 45,
-          g: 255,
-          b: 0,
+          r: 254,
+          g: 0,
+          b: 229,
           image: document.getElementById('image2')
         },
         {
           r: 255,
-          g: 0,
-          b: 238,
+          g: 1,
+          b: 3,
           image: document.getElementById('image3')
+        },
+        {
+          r: 1,
+          g: 8,
+          b: 242,
+          image: document.getElementById('image4')
+        },
+        {
+          r: 0,
+          g: 255,
+          b: 21,
+          image: document.getElementById('image5')
         }
       ]
 
-      let chroma1 = new chroma(ctx1, dataRgb, 2, 2.5)
+      let chroma1 = new chroma(ctx1, dataRgb, 2, 2)
 
-      photogram.addEventListener("play", function () {
+      photogram.addEventListener('play', function () {
         timerCallback(photogram, chroma1);
       });
+
+      //Find the RGB on the canvas
+      /*
+      cv.addEventListener('click', function (event) {
+        let clientRect = cv.getBoundingClientRect()
+        let posX = Math.round(event.clientX - clientRect.left) + 1
+        let posY = Math.round(event.clientY - clientRect.top) + 1
+        getRGB(posX, posY, cv, ctx1)
+      }, false)
+
+      function getRGB(x, y, cv, ctx1) {
+        let posFrame = (((cv.width * (y - 1)) + x) - 1) * 4
+        let frame = ctx1.getImageData(0, 0, cv.width, cv.height)
+
+        let color = {
+          r: frame.data[posFrame],
+          g: frame.data[posFrame + 1],
+          b: frame.data[posFrame + 2]
+        }
+
+        let text = `El color RGB en el punto (${x},${y}) es :  r[${color.r}] g[${color.g}] b[${color.b}]`
+        console.log(text)
+      }*/
     }
 
 
